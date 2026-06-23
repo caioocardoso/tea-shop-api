@@ -1,7 +1,8 @@
-package com.caiooccardoso.tea_shop_api.model;
+package com.caiooccardoso.tea_shop_api.models;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -10,6 +11,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -20,7 +23,9 @@ public class User {
     private String mail;
     private LocalDate birthDate;
     @ElementCollection
-    @CollectionTable(name = "user_acdresses", joinColumns = @JoinColumn(name = "user_id"))
+    @CollectionTable(name = "user_addresses", joinColumns = @JoinColumn(name = "user_id"))
     private List<Address> addressList = new ArrayList<>();
+    @OneToMany(mappedBy = "customer")
+    private List<Order> orderList = new ArrayList<>();
 
 }
