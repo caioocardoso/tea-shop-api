@@ -1,10 +1,12 @@
-package com.caiooccardoso.tea_shop_api.model;
+package com.caiooccardoso.tea_shop_api.models;
 
 import jakarta.persistence.*;
-
-import java.util.UUID;
+import lombok.Getter;
+import lombok.Setter;
 
 @Embeddable
+@Getter
+@Setter
 public class Address {
     private String nameOfRecipient;
     private String street;
