@@ -5,9 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "users")
@@ -26,6 +24,6 @@ public class User {
     @CollectionTable(name = "user_addresses", joinColumns = @JoinColumn(name = "user_id"))
     private List<Address> addressList = new ArrayList<>();
     @OneToMany(mappedBy = "customer")
-    private List<Order> orderList = new ArrayList<>();
+    private Set<Order> orderList = new HashSet<>();
 
 }

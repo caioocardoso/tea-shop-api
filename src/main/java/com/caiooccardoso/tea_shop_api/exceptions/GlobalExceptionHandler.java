@@ -1,5 +1,6 @@
 package com.caiooccardoso.tea_shop_api.exceptions;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -37,13 +39,50 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleMalformedBody(HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> handleMalformedBody(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
+    ) {
         Map<String, Object> response = buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
                 "Corpo da requisição inválido",
                 request
         );
+
+        Map<String, String> fieldErrors = resolveMalformedFields(exception);
+        if (!fieldErrors.isEmpty()) {
+            response.put("fields", fieldErrors);
+        }
+
         return ResponseEntity.badRequest().body(response);
+    }
+
+    private Map<String, String> resolveMalformedFields(HttpMessageNotReadableException exception) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof InvalidFormatException invalidFormatException
+                    && LocalDate.class.equals(invalidFormatException.getTargetType())) {
+                fieldErrors.put("birthDate", "A data de nascimento deve estar no formato yyyy-MM-dd");
+                return fieldErrors;
+            }
+
+            String message = cause.getMessage();
+            if (message != null && (message.contains(LocalDate.class.getName()) || message.contains("birthDate"))) {
+                fieldErrors.put("birthDate", "A data de nascimento deve estar no formato yyyy-MM-dd");
+                return fieldErrors;
+            }
+            cause = cause.getCause();
+        }
+
+        String exceptionMessage = exception.getMessage();
+        if (exceptionMessage != null
+                && (exceptionMessage.contains(LocalDate.class.getName()) || exceptionMessage.contains("birthDate"))) {
+            fieldErrors.put("birthDate", "A data de nascimento deve estar no formato yyyy-MM-dd");
+        }
+
+        return fieldErrors;
     }
 
     @ExceptionHandler(ProductAlreadyExistsException.class)
@@ -98,6 +137,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleOrderNotFound(
+            OrderNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        Map<String, Object> response = buildErrorResponse(
+                HttpStatus.NOT_FOUND,
+                exception.getMessage(),
+                request
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientStock(
+            InsufficientStockException exception,
+            HttpServletRequest request
+    ) {
+        Map<String, Object> response = buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                exception.getMessage(),
+                request
+        );
+        return ResponseEntity.badRequest().body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnexpectedError(HttpServletRequest request) {
         Map<String, Object> response = buildErrorResponse(
@@ -112,6 +177,9 @@ public class GlobalExceptionHandler {
         String path = request.getRequestURI();
         if (path.startsWith("/api/user")) {
             return "Dados inválidos para operação de usuário";
+        }
+        if (path.startsWith("/api/order")) {
+            return "Dados inválidos para operação de pedido";
         }
         return "Dados inválidos para criação do produto";
     }

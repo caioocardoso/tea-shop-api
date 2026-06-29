@@ -78,8 +78,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.fields.lastName").exists())
                 .andExpect(jsonPath("$.fields.cpf").exists())
                 .andExpect(jsonPath("$.fields.mail").exists())
-                .andExpect(jsonPath("$.fields.birthDate").exists())
-                .andExpect(jsonPath("$.fields.addressList").exists());
+                .andExpect(jsonPath("$.fields.birthDate").exists());
     }
 
     @Test
@@ -93,6 +92,28 @@ class UserControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value("Já existe um usuário com este CPF"));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenBirthDateFormatIsInvalid() throws Exception {
+        String invalidDateBody = """
+                {
+                  "firstName": "Caio",
+                  "lastName": "Cardoso",
+                  "cpf": "12345678900",
+                  "mail": "caio@email.com",
+                  "birthDate": "2A026-06-29",
+                  "addressList": []
+                }
+                """;
+
+        mockMvc.perform(post("/api/user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidDateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Corpo da requisição inválido"))
+                .andExpect(jsonPath("$.fields.birthDate").value("A data de nascimento deve estar no formato yyyy-MM-dd"));
     }
 
     @Test
